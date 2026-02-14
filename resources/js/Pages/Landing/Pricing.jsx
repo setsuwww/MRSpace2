@@ -1,4 +1,3 @@
-import React from 'react';
 import { CheckCircle } from 'lucide-react';
 
 export default function Pricing() {
@@ -28,9 +27,9 @@ export default function Pricing() {
     ];
 
     return (
-        <section id="pricing" className="py-40 bg-white rounded-t-full">
+        <section id="pricing" className="py-40 bg-gradient-to-l from-yellow-100/20 to-gray-900/5 rounded-l-full">
             <div className="container mx-auto px-6 text-center md:text-left">
-                <h2 className="text-4xl font-bold text-gray-600">Pricing Plans</h2>
+                <h2 className="text-4xl font-bold text-yellow-600">Pricing Plans</h2>
                 <p className="text-lg mt-1 mb-12 text-gray-400">Subscription make us more enthusiastic</p>
 
                 <div className="flex flex-col md:flex-row justify-center gap-6 md:gap-0">

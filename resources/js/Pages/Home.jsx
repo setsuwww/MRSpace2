@@ -1,22 +1,23 @@
 import React from 'react';
-import Navbar from '../Components/Navbar';
+import Navbar from '../components/Navbar';
 import Services from './Landing/Services';
 import Pricing from './Landing/Pricing';
 
 export default function Home() {
   return (
-    <div className="">
+    <div className="bg-gray-900">
 
       <Navbar />
 
       <section className="bg-gradient-to-r from-red-600/70 via-pink-600/60 to-indigo-600/50 text-white rounded-r-full">
         <div className="container mx-auto px-6 py-32 text-center md:text-left md:flex md:items-center md:justify-between">
           <div className="md:w-1/2">
-            <h1 className="text-5xl md:text-6xl font-extrabold mb-6 text-shadow-xs">Build your inventory-management aplication</h1>
-            <p className="text-xl md:text-2xl mb-8 text-gray-100">Modern Multisector platform with analytics, management, and functional flexible content with Modern UI</p>
+            <h1 className="text-6xl md:text-7xl font-extrabold mb-6 text-shadow-xs">MR:Space</h1>
+            <h1 className="text-5xl md:text-6xl font-bold mb-6 text-shadow-xs opacity-70">Build your inventory-management aplication</h1>
+            <p className="text-xl md:text-2xl mb-8 text-gray-100 opacity-50">Modern Multisector platform with Analytics, Management, and Functional fFexible content with Modern User interface</p>
             <div className="flex gap-4 justify-center md:justify-start">
-              <a href="/register" className="px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg shadow hover:bg-gray-100 transition">Get Started</a>
-              <a href="#pricing" className="px-6 py-3 border border-white text-white rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition">See Pricing</a>
+              <a href="/register" className="px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg shadow hover:bg-radial hover:from-violet-200 transition">Get Started</a>
+              <a href="#pricing" className="px-6 py-3 border border-white text-white rounded-lg font-semibold hover:bg-white/20 hover:backdrop-blur-lg hover:text-blue-200 transition">See Pricing</a>
             </div>
           </div>
           <div className="md:w-1/2 mt-10 md:mt-0">
