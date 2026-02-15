@@ -7,11 +7,9 @@ import {
   CircleUserRound,
   PlusCircle,
   X,
-  Mail,
   Phone,
   MapPin,
   Package,
-  MoreVertical,
   Edit2,
   Trash2,
   ChevronDown,
@@ -97,7 +95,7 @@ export default function Index({ suppliers }) {
                     </div>
                     <button
                         onClick={() => setOpenCreate(true)}
-                        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                        className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
                     >
                         <PlusCircle className="w-4 h-4 mr-2" />
                         Add Supplier
@@ -108,8 +106,8 @@ export default function Index({ suppliers }) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="bg-white rounded-lg border border-gray-200 p-4">
                         <div className="flex items-center">
-                            <div className="p-2 bg-blue-50 rounded-lg">
-                                <Package className="w-5 h-5 text-blue-600" />
+                            <div className="p-2 bg-indigo-50 rounded-lg">
+                                <Package className="w-5 h-5 text-indigo-600" />
                             </div>
                             <div className="ml-3">
                                 <p className="text-sm text-gray-500">Total Suppliers</p>
@@ -184,7 +182,7 @@ export default function Index({ suppliers }) {
                                                             <ChevronRight className="w-4 h-4" />
                                                         )}
                                                     </button>
-                                                    <div className="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                                                    <div className="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center">
                                                         <CircleUserRound className="w-6 h-6 text-white" />
                                                     </div>
                                                     <div className="ml-4">
@@ -210,7 +208,7 @@ export default function Index({ suppliers }) {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                                                     {supplier.items.length} items
                                                 </span>
                                             </td>
@@ -225,7 +223,7 @@ export default function Index({ suppliers }) {
                                                             })
                                                             setOpenEdit(true)
                                                         }}
-                                                        className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                                                        className="p-1 text-gray-400 hover:text-indigo-600 transition-colors"
                                                         title="Edit supplier"
                                                     >
                                                         <Edit2 className="w-4 h-4" />
@@ -251,20 +249,17 @@ export default function Index({ suppliers }) {
                                                 <td colSpan={5} className="px-6 py-4">
                                                     <div className="ml-6">
                                                         <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
-                                                            Items Provided by {supplier.name}
+                                                            Items Provided by
                                                         </h4>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                        <div className="rounded-l-lg border-l-2 border-gray-300 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
                                                             {supplier.items.map((item, idx) => (
-                                                                <div
-                                                                    key={idx}
-                                                                    className="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-sm transition-shadow"
-                                                                >
+                                                                <div key={idx} className="bg-gray-200/40 rounded-lg border border-gray-200 p-3 hover:border-gray-400 transition-border">
                                                                     <div className="flex justify-between items-start">
                                                                         <div>
                                                                             <p className="text-sm font-medium text-gray-900">{item.name}</p>
                                                                             <p className="text-xs text-gray-500 mt-1">SKU: {item.sku}</p>
                                                                         </div>
-                                                                        <span className="text-sm font-semibold text-gray-900">
+                                                                        <span className="text-sm font-semibold text-yellow-600">
                                                                             {formatCurrency(item.price)}
                                                                         </span>
                                                                     </div>
@@ -290,7 +285,7 @@ export default function Index({ suppliers }) {
                             <div className="mt-6">
                                 <button
                                     onClick={() => setOpenCreate(true)}
-                                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                 >
                                     <PlusCircle className="w-4 h-4 mr-2" />
                                     Add Supplier
@@ -336,7 +331,7 @@ export default function Index({ suppliers }) {
                                         </label>
                                         <input
                                             id="name"
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                             placeholder="Enter supplier name"
                                             value={data.name}
                                             onChange={(e) => setData("name", e.target.value)}
@@ -350,7 +345,7 @@ export default function Index({ suppliers }) {
                                         </label>
                                         <input
                                             id="phone"
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                             placeholder="+62 812-3456-7890"
                                             value={data.phone}
                                             onChange={(e) => setData("phone", e.target.value)}
@@ -364,7 +359,7 @@ export default function Index({ suppliers }) {
                                         <input
                                             id="email"
                                             type="email"
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                             placeholder="supplier@example.com"
                                             value={data.email}
                                             onChange={(e) => setData("email", e.target.value)}
@@ -378,7 +373,7 @@ export default function Index({ suppliers }) {
                                         <textarea
                                             id="address"
                                             rows="2"
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                             placeholder="Enter full address"
                                             value={data.address}
                                             onChange={(e) => setData("address", e.target.value)}
@@ -394,7 +389,7 @@ export default function Index({ suppliers }) {
                                     <button
                                         type="button"
                                         onClick={addItemRow}
-                                        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-50"
+                                        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 border border-indigo-200 rounded-lg hover:bg-indigo-50"
                                     >
                                         <PlusCircle className="w-4 h-4 mr-1" /> Add Item
                                     </button>
@@ -407,7 +402,7 @@ export default function Index({ suppliers }) {
                                                 <div className="col-span-1">
                                                     <label className="block text-xs text-gray-500 mb-1">Item Name</label>
                                                     <input
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                                         placeholder="Product name"
                                                         value={item.name}
                                                         onChange={(e) => handleItemChange(index, "name", e.target.value)}
@@ -416,7 +411,7 @@ export default function Index({ suppliers }) {
                                                 <div className="col-span-1">
                                                     <label className="block text-xs text-gray-500 mb-1">SKU</label>
                                                     <input
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                                         placeholder="SKU-001"
                                                         value={item.sku}
                                                         onChange={(e) => handleItemChange(index, "sku", e.target.value)}
@@ -425,7 +420,7 @@ export default function Index({ suppliers }) {
                                                 <div className="col-span-1">
                                                     <label className="block text-xs text-gray-500 mb-1">Price</label>
                                                     <input
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                                         placeholder="0.00"
                                                         type="number"
                                                         step="0.01"
@@ -457,13 +452,13 @@ export default function Index({ suppliers }) {
                                         openCreate ? setOpenCreate(false) : setOpenEdit(false)
                                         reset()
                                     }}
-                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                 >
                                     {openCreate ? "Create Supplier" : "Update Supplier"}
                                 </button>

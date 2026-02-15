@@ -3,8 +3,8 @@
 @import "shadcn/tailwind.css";
 
 @theme {
-  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-    'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
 .art-sm-icon {
@@ -17,4 +17,18 @@
 
 .art-button-outline {
     @apply cursor-pointer border border-gray-300 bg-transparent hover:bg-gray-100 rounded-md shadow-xs;
+}
+
+@layer components {
+    .art-table {
+        @apply min-w-full divide-y divide-gray-200;
+    }
+
+    .art-th {
+        @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700;
+    }
+
+    .art-td {
+        @apply px-6 py-4 whitespace-nowrap;
+    }
 }

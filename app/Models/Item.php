@@ -23,4 +23,9 @@ class Item extends Model
     {
         return $this->belongsTo(Supplier::class);
     }
+
+    public function getPriceInRupiah()
+    {
+        return 'Rp ' . number_format($this->price, 0, ',', '.');
+    }
 }
