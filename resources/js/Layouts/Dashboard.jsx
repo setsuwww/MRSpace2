@@ -1,8 +1,8 @@
 import { useState } from "react"
 import { Link, usePage } from "@inertiajs/react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
+import { Card } from "@/Components/ui/card"
+import { Button } from "@/Components/ui/button"
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/Components/ui/collapsible"
 import { Home, Users, Settings, Package, Truck, FileText, Layers, LogOut, Database, Menu } from "lucide-react"
 
 export default function DashboardLayout({ children }) {

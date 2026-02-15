@@ -3,12 +3,26 @@
 import React, { useState } from "react"
 import { useForm } from "@inertiajs/react"
 import DashboardLayout from "@/Layouts/Dashboard.jsx"
-import { CircleUserRound, PlusCircle, X } from "lucide-react"
+import {
+  CircleUserRound,
+  PlusCircle,
+  X,
+  Mail,
+  Phone,
+  MapPin,
+  Package,
+  MoreVertical,
+  Edit2,
+  Trash2,
+  ChevronDown,
+  ChevronRight
+} from "lucide-react"
 
 export default function Index({ suppliers }) {
     const [openCreate, setOpenCreate] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedSupplier, setSelectedSupplier] = useState(null)
+    const [expandedRows, setExpandedRows] = useState([])
 
     const { data, setData, post, put, delete: destroy, reset } = useForm({
         name: "",
@@ -38,7 +52,14 @@ export default function Index({ suppliers }) {
         })
     }
 
-    // ---------------- Nested Items Logic ----------------
+    const toggleRow = (supplierId) => {
+        setExpandedRows(prev =>
+            prev.includes(supplierId)
+                ? prev.filter(id => id !== supplierId)
+                : [...prev, supplierId]
+        )
+    }
+
     const addItemRow = () => {
         setData("items", [...data.items, { name: "", sku: "", price: "" }])
     }
@@ -55,230 +76,396 @@ export default function Index({ suppliers }) {
         setData("items", newItems)
     }
 
+    const formatCurrency = (price) => {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 2
+        }).format(price)
+    }
+
     return (
         <DashboardLayout>
-            <div className="space-y-8">
-                {/* Header */}
-                <div className="flex justify-between items-center">
-                    <h1 className="text-3xl text-gray-600 font-bold">Suppliers</h1>
+            <div className="space-y-6">
+                {/* Header Section */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h1 className="text-2xl font-semibold text-gray-900">Suppliers</h1>
+                        <p className="text-sm text-gray-500 mt-1">
+                            Manage your suppliers and their provided items
+                        </p>
+                    </div>
                     <button
                         onClick={() => setOpenCreate(true)}
-                        className="px-4 py-2 bg-black text-white rounded-xl hover:opacity-90"
+                        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                     >
+                        <PlusCircle className="w-4 h-4 mr-2" />
                         Add Supplier
                     </button>
                 </div>
 
-                {/* Table */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                    <table className="w-full text-sm">
-                        <thead className="bg-gray-50 border-b border-gray-400">
-                            <tr className="text-left text-gray-600">
-                                <th className="px-6 py-4 font-medium">Supplier</th>
-                                <th className="px-6 py-4 font-medium">Phone</th>
-                                <th className="px-6 py-4 font-medium">Address</th>
-                                <th className="px-6 py-4 text-right font-medium">Actions</th>
-                            </tr>
-                        </thead>
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white rounded-lg border border-gray-200 p-4">
+                        <div className="flex items-center">
+                            <div className="p-2 bg-blue-50 rounded-lg">
+                                <Package className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <div className="ml-3">
+                                <p className="text-sm text-gray-500">Total Suppliers</p>
+                                <p className="text-xl font-semibold text-gray-900">{suppliers.length}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-lg border border-gray-200 p-4">
+                        <div className="flex items-center">
+                            <div className="p-2 bg-green-50 rounded-lg">
+                                <Package className="w-5 h-5 text-green-600" />
+                            </div>
+                            <div className="ml-3">
+                                <p className="text-sm text-gray-500">Active Items</p>
+                                <p className="text-xl font-semibold text-gray-900">
+                                    {suppliers.reduce((acc, s) => acc + s.items.length, 0)}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-lg border border-gray-200 p-4">
+                        <div className="flex items-center">
+                            <div className="p-2 bg-purple-50 rounded-lg">
+                                <Package className="w-5 h-5 text-purple-600" />
+                            </div>
+                            <div className="ml-3">
+                                <p className="text-sm text-gray-500">Avg Items/Supplier</p>
+                                <p className="text-xl font-semibold text-gray-900">
+                                    {(suppliers.reduce((acc, s) => acc + s.items.length, 0) / suppliers.length || 0).toFixed(1)}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                        <tbody>
-                            {suppliers.map((supplier) => (
-                                <React.Fragment key={supplier.id}>
-                                    <tr className="border last:border-l-2 border-gray-200 hover:bg-gray-50 transition">
-                                        <td className="px-6 py-4 flex items-center space-x-2">
-                                            <div className="p-2 bg-gray-800 text-white rounded-full">
-                                                <CircleUserRound strokeWidth={1.5} />
-                                            </div>
-                                            <div className="flex flex-col">
-                                                <span className="text-base text-gray-600 font-semibold">{supplier.name}</span>
-                                                <span className="text-sm text-gray-400">{supplier.email}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">{supplier.phone}</td>
-                                        <td className="px-6 py-4">{supplier.address}</td>
-                                        <td className="px-6 py-4 text-right space-x-2">
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedSupplier(supplier)
-                                                    setData({
-                                                        ...supplier,
-                                                        items: supplier.items.length ? supplier.items : [{ name: "", sku: "", price: "" }]
-                                                    })
-                                                    setOpenEdit(true)
-                                                }}
-                                                className="px-3 py-1.5 border rounded-lg text-xs hover:bg-gray-100"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                onClick={() => destroy(`/inventory/suppliers/${supplier.id}`)}
-                                                className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs hover:opacity-90"
-                                            >
-                                                Delete
-                                            </button>
-                                        </td>
-                                    </tr>
-
-                                    {supplier.items.length > 0 && (
-                                        <tr className="bg-gray-50">
-                                            <td colSpan={4} className="px-6 py-2">
-                                                <div className="flex flex-col space-y-2 border-l-2 border-gray-300/60 pl-4">
-                                                    <div className="grid grid-cols-3 gap-4 text-xs font-medium text-gray-500 uppercase border-b border-gray-200 pb-1">
-                                                        <span>Item Name</span>
-                                                        <span>SKU</span>
-                                                        <span>Price</span>
+                {/* Table Section */}
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Supplier
+                                    </th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Contact
+                                    </th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Address
+                                    </th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Items
+                                    </th>
+                                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {suppliers.map((supplier) => (
+                                    <React.Fragment key={supplier.id}>
+                                        <tr className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center">
+                                                    <button
+                                                        onClick={() => toggleRow(supplier.id)}
+                                                        className="mr-2 text-gray-400 hover:text-gray-600"
+                                                    >
+                                                        {expandedRows.includes(supplier.id) ? (
+                                                            <ChevronDown className="w-4 h-4" />
+                                                        ) : (
+                                                            <ChevronRight className="w-4 h-4" />
+                                                        )}
+                                                    </button>
+                                                    <div className="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                                                        <CircleUserRound className="w-6 h-6 text-white" />
                                                     </div>
-                                                    {supplier.items.map((item, idx) => (
-                                                        <div key={idx} className="grid grid-cols-3 gap-4 items-center text-sm text-gray-700 bg-white rounded-md px-2 py-1 hover:bg-gray-50 transition">
-                                                            <span className="font-semibold">{item.name}</span>
-                                                            <span>{item.sku}</span>
-                                                            <span>${item.price}</span>
+                                                    <div className="ml-4">
+                                                        <div className="text-sm font-medium text-gray-900">
+                                                            {supplier.name}
                                                         </div>
-                                                    ))}
+                                                        <div className="text-sm text-gray-500">
+                                                            {supplier.email}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center text-sm text-gray-900">
+                                                    <Phone className="w-4 h-4 text-gray-400 mr-2" />
+                                                    {supplier.phone}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-start text-sm text-gray-900">
+                                                    <MapPin className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0 mt-0.5" />
+                                                    <span className="line-clamp-2">{supplier.address}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                    {supplier.items.length} items
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <div className="flex items-center justify-end space-x-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedSupplier(supplier)
+                                                            setData({
+                                                                ...supplier,
+                                                                items: supplier.items.length ? supplier.items : [{ name: "", sku: "", price: "" }]
+                                                            })
+                                                            setOpenEdit(true)
+                                                        }}
+                                                        className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                                                        title="Edit supplier"
+                                                    >
+                                                        <Edit2 className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            if (confirm('Are you sure you want to delete this supplier?')) {
+                                                                destroy(`/inventory/suppliers/${supplier.id}`)
+                                                            }
+                                                        }}
+                                                        className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                                                        title="Delete supplier"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
-                                    )}
-                                </React.Fragment>
-                            ))}
-                        </tbody>
-                    </table>
+
+                                        {/* Expanded Items Row */}
+                                        {expandedRows.includes(supplier.id) && supplier.items.length > 0 && (
+                                            <tr className="bg-gray-50">
+                                                <td colSpan={5} className="px-6 py-4">
+                                                    <div className="ml-6">
+                                                        <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+                                                            Items Provided by {supplier.name}
+                                                        </h4>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                            {supplier.items.map((item, idx) => (
+                                                                <div
+                                                                    key={idx}
+                                                                    className="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-sm transition-shadow"
+                                                                >
+                                                                    <div className="flex justify-between items-start">
+                                                                        <div>
+                                                                            <p className="text-sm font-medium text-gray-900">{item.name}</p>
+                                                                            <p className="text-xs text-gray-500 mt-1">SKU: {item.sku}</p>
+                                                                        </div>
+                                                                        <span className="text-sm font-semibold text-gray-900">
+                                                                            {formatCurrency(item.price)}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </React.Fragment>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Empty State */}
+                    {suppliers.length === 0 && (
+                        <div className="text-center py-12">
+                            <Package className="mx-auto h-12 w-12 text-gray-400" />
+                            <h3 className="mt-2 text-sm font-medium text-gray-900">No suppliers</h3>
+                            <p className="mt-1 text-sm text-gray-500">Get started by adding your first supplier.</p>
+                            <div className="mt-6">
+                                <button
+                                    onClick={() => setOpenCreate(true)}
+                                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                >
+                                    <PlusCircle className="w-4 h-4 mr-2" />
+                                    Add Supplier
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
+            {/* Modal (keep your existing modal code but you can enhance it similarly) */}
             {(openCreate || openEdit) && (
                 <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/30">
-                    <div className="bg-white p-6 rounded-2xl w-[900px] max-h-[90vh] overflow-y-auto">
-                        <div className="flex flex-col mb-4">
-                            <h2 className="text-lg font-semibold text-gray-600">
-                                {openCreate ? "Create Supplier" : "Edit Supplier"}
-                            </h2>
-                            <p className="text-sm text-gray-400">
-                                {openCreate ? "Fill in supplier details and items provided." : "Update supplier and items details."}
-                            </p>
+                    <div className="bg-white p-6 rounded-xl w-[900px] max-h-[90vh] overflow-y-auto">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 className="text-lg font-semibold text-gray-900">
+                                    {openCreate ? "Add New Supplier" : "Edit Supplier"}
+                                </h2>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    {openCreate ? "Fill in supplier details and items provided." : "Update supplier and items details."}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    openCreate ? setOpenCreate(false) : setOpenEdit(false)
+                                    reset()
+                                }}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
                         </div>
 
-                        <form onSubmit={openCreate ? submitCreate : submitEdit} className="space-y-4">
+                        <form onSubmit={openCreate ? submitCreate : submitEdit} className="space-y-6">
                             {/* Supplier Info */}
-                            <div className="flex flex-col space-y-2">
-                                <label htmlFor="name" className="text-gray-600 font-medium">Name</label>
-                                <input
-                                    id="name"
-                                    className="art-input"
-                                    placeholder="Dirman"
-                                    value={data.name}
-                                    onChange={(e) => setData("name", e.target.value)}
-                                />
+                            <div className="space-y-4">
+                                <h3 className="text-sm font-medium text-gray-700">Supplier Information</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="col-span-2">
+                                        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                                            Name <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            id="name"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="Enter supplier name"
+                                            value={data.name}
+                                            onChange={(e) => setData("name", e.target.value)}
+                                            required
+                                        />
+                                    </div>
 
-                                <div className="mt-1 grid grid-cols-2 space-x-4">
-                                    <div className="flex flex-col space-y-1.5">
-                                        <label htmlFor="phone" className="text-gray-600 font-medium">Phone</label>
+                                    <div>
+                                        <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                                            Phone
+                                        </label>
                                         <input
                                             id="phone"
-                                            className="art-input"
-                                            placeholder="+628XX XXXX XXXX"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="+62 812-3456-7890"
                                             value={data.phone}
                                             onChange={(e) => setData("phone", e.target.value)}
                                         />
                                     </div>
 
-                                    <div className="flex flex-col space-y-1.5">
-                                        <label htmlFor="email" className="text-gray-600 font-medium">Email</label>
+                                    <div>
+                                        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                                            Email
+                                        </label>
                                         <input
                                             id="email"
-                                            className="art-input"
-                                            placeholder="email@email.com"
+                                            type="email"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="supplier@example.com"
                                             value={data.email}
                                             onChange={(e) => setData("email", e.target.value)}
                                         />
                                     </div>
-                                </div>
 
-                                <label htmlFor="address" className="text-gray-600 font-medium">Address</label>
-                                <input
-                                    id="address"
-                                    className="art-input"
-                                    placeholder="Jln. Kp. Siluman"
-                                    value={data.address}
-                                    onChange={(e) => setData("address", e.target.value)}
-                                />
+                                    <div className="col-span-2">
+                                        <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+                                            Address
+                                        </label>
+                                        <textarea
+                                            id="address"
+                                            rows="2"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="Enter full address"
+                                            value={data.address}
+                                            onChange={(e) => setData("address", e.target.value)}
+                                        />
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Items Provided */}
-                            <div className="space-y-2 mt-4">
-                                <h3 className="text-gray-600 font-medium">Items Provided</h3>
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-sm font-medium text-gray-700">Items Provided</h3>
+                                    <button
+                                        type="button"
+                                        onClick={addItemRow}
+                                        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-50"
+                                    >
+                                        <PlusCircle className="w-4 h-4 mr-1" /> Add Item
+                                    </button>
+                                </div>
 
-                                {data.items.map((item, index) => (
-                                    <div key={index} className="flex items-center gap-2">
-                                        <div className="flex-1 flex flex-col space-y-2">
-                                            <label className="text-gray-400 text-xs">Item Name</label>
-                                            <input
-                                                className="art-input"
-                                                placeholder="Item name"
-                                                value={item.name}
-                                                onChange={(e) => handleItemChange(index, "name", e.target.value)}
-                                            />
+                                <div className="space-y-3">
+                                    {data.items.map((item, index) => (
+                                        <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                                            <div className="flex-1 grid grid-cols-3 gap-3">
+                                                <div className="col-span-1">
+                                                    <label className="block text-xs text-gray-500 mb-1">Item Name</label>
+                                                    <input
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                        placeholder="Product name"
+                                                        value={item.name}
+                                                        onChange={(e) => handleItemChange(index, "name", e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="col-span-1">
+                                                    <label className="block text-xs text-gray-500 mb-1">SKU</label>
+                                                    <input
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                        placeholder="SKU-001"
+                                                        value={item.sku}
+                                                        onChange={(e) => handleItemChange(index, "sku", e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="col-span-1">
+                                                    <label className="block text-xs text-gray-500 mb-1">Price</label>
+                                                    <input
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                        placeholder="0.00"
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        value={item.price}
+                                                        onChange={(e) => handleItemChange(index, "price", e.target.value)}
+                                                    />
+                                                </div>
+                                            </div>
+                                            {data.items.length > 1 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeItemRow(index)}
+                                                    className="mt-6 p-1 text-gray-400 hover:text-red-600 transition-colors"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            )}
                                         </div>
-
-                                        <div className="w-24 flex flex-col space-y-2">
-                                            <label className="text-gray-400 text-xs">SKU</label>
-                                            <input
-                                                className="art-input"
-                                                placeholder="SKU"
-                                                value={item.sku}
-                                                onChange={(e) => handleItemChange(index, "sku", e.target.value)}
-                                            />
-                                        </div>
-
-                                        <div className="w-24 flex flex-col space-y-2">
-                                            <label className="text-gray-400 text-xs">Price</label>
-                                            <input
-                                                className="art-input"
-                                                placeholder="Price"
-                                                type="number"
-                                                value={item.price}
-                                                onChange={(e) => handleItemChange(index, "price", e.target.value)}
-                                            />
-                                        </div>
-
-                                        <button
-                                            type="button"
-                                            onClick={() => removeItemRow(index)}
-                                            className="p-1 border border-gray-300 mt-6 rounded-full text-red-500 shadow-xs hover:bg-red-50 hover:border-red-300 cursor-pointer"
-                                        >
-                                            <X className="art-sm-icon" />
-                                        </button>
-                                    </div>
-                                ))}
-
-                                <button
-                                    type="button"
-                                    onClick={addItemRow}
-                                    className="flex items-center text-sm px-2 py-1.5 art-button-outline"
-                                >
-                                    <PlusCircle className="art-sm-icon mr-1" /> Add Items
-                                </button>
+                                    ))}
+                                </div>
                             </div>
 
-                            <div className="flex items-center justify-end mt-4 gap-2">
-                                {/* Cancel Button */}
+                            {/* Form Actions */}
+                            <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
                                 <button
                                     type="button"
                                     onClick={() => {
                                         openCreate ? setOpenCreate(false) : setOpenEdit(false)
                                         reset()
                                     }}
-                                    className="w-1/4 bg-gray-200 text-gray-700 py-2.5 rounded-xl hover:bg-gray-300 transition"
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                 >
                                     Cancel
                                 </button>
-
-                                {/* Save Button */}
                                 <button
                                     type="submit"
-                                    className="w-1/4 bg-black text-white py-2.5 rounded-xl hover:opacity-90 transition"
+                                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                 >
-                                    {openCreate ? "Save Supplier" : "Update Supplier"}
+                                    {openCreate ? "Create Supplier" : "Update Supplier"}
                                 </button>
                             </div>
                         </form>
