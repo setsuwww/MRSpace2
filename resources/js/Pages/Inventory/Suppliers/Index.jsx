@@ -3,38 +3,57 @@
 import React, { useState } from "react"
 import { useForm } from "@inertiajs/react"
 import DashboardLayout from "@/Layouts/Dashboard.jsx"
-import {
-  CircleUserRound,
-  PlusCircle,
-  X,
-  Phone,
-  MapPin,
-  Package,
-  Edit2,
-  Trash2,
-  ChevronDown,
-  ChevronRight
-} from "lucide-react"
+import { CircleUserRound, PlusCircle, X, Phone, MapPin, Package, Edit2, Trash2, ChevronDown, ChevronRight, TrendingDown, TrendingUp, ShoppingCart, CheckCircle, Clock, AlertCircle, DollarSign, BarChart3 } from "lucide-react"
+import PageHeader from "@/Components/common/PageHeader"
+import ItemsStats from "../Items/ItemsStats"
 
-export default function Index({ suppliers }) {
+export default function Index({ suppliers, purchaseRequests = [] }) {
     const [openCreate, setOpenCreate] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
+    const [openRequest, setOpenRequest] = useState(false)
+    const [openAddItem, setOpenAddItem] = useState(false)
     const [selectedSupplier, setSelectedSupplier] = useState(null)
+    const [selectedItem, setSelectedItem] = useState(null)
     const [expandedRows, setExpandedRows] = useState([])
+    const [activeTab, setActiveTab] = useState("suppliers")
 
     const { data, setData, post, put, delete: destroy, reset } = useForm({
         name: "",
         phone: "",
         email: "",
         address: "",
-        items: [{ name: "", sku: "", price: "" }]
+        items: [{ name: "", sku: "", price: "", cost_price: "", stock: 0 }]
+    })
+
+    const { data: requestData, setData: setRequestData, post: postRequest, reset: resetRequest } = useForm({
+        supplier_id: "",
+        item_id: "",
+        quantity: 1,
+        notes: ""
+    })
+
+    const { data: newItemData, setData: setNewItemData, post: postNewItem, reset: resetNewItem } = useForm({
+        name: "",
+        sku: "",
+        price: "",
+        cost_price: "",
+        stock: 0,
+        supplier_id: ""
     })
 
     const submitCreate = (e) => {
         e.preventDefault()
+
+        const invalidItems = data.items.filter(item =>
+            item.price && item.cost_price && parseFloat(item.price) < parseFloat(item.cost_price)
+        )
+
+        if (invalidItems.length > 0) { alert("Selling price cannot be less than cost price for some items")
+            return
+        }
+
         post("/inventory/suppliers", {
-            onSuccess: () => {
-                reset()
+            onSuccess: () => { reset()
                 setOpenCreate(false)
             }
         })
@@ -42,10 +61,45 @@ export default function Index({ suppliers }) {
 
     const submitEdit = (e) => {
         e.preventDefault()
+
+        const invalidItems = data.items.filter(item =>
+            item.price && item.cost_price && parseFloat(item.price) < parseFloat(item.cost_price)
+        )
+
+        if (invalidItems.length > 0) {
+            alert("Selling price cannot be less than cost price for some items")
+            return
+        }
+
         put(`/inventory/suppliers/${selectedSupplier.id}`, {
-            onSuccess: () => {
-                reset()
+            onSuccess: () => { reset()
                 setOpenEdit(false)
+            }
+        })
+    }
+
+    const submitPurchaseRequest = (e) => { e.preventDefault()
+        post("/inventory/purchase-requests", {
+            data: requestData,
+            onSuccess: () => {
+                resetRequest()
+                setOpenRequest(false)
+                setSelectedSupplier(null)
+                setSelectedItem(null)
+            }
+        })
+    }
+
+    const submitAddItem = (e) => { e.preventDefault()
+        post("/inventory/items", {
+            data: {
+                ...newItemData,
+                supplier_id: selectedSupplier.id
+            },
+            onSuccess: () => {
+                resetNewItem()
+                setOpenAddItem(false)
+                setSelectedSupplier(null)
             }
         })
     }
@@ -59,7 +113,7 @@ export default function Index({ suppliers }) {
     }
 
     const addItemRow = () => {
-        setData("items", [...data.items, { name: "", sku: "", price: "" }])
+        setData("items", [...data.items, { name: "", sku: "", price: "", cost_price: "", stock: 0 }])
     }
 
     const removeItemRow = (index) => {
@@ -71,232 +125,714 @@ export default function Index({ suppliers }) {
     const handleItemChange = (index, field, value) => {
         const newItems = [...data.items]
         newItems[index][field] = value
+
+        // Validasi harga jual tidak boleh kurang dari harga beli
+        if (field === "price" || field === "cost_price") {
+            const price = field === "price" ? parseFloat(value) : parseFloat(newItems[index].price)
+            const costPrice = field === "cost_price" ? parseFloat(value) : parseFloat(newItems[index].cost_price)
+
+            if (price && costPrice && price < costPrice) {
+                alert("Warning: Selling price is less than cost price!")
+            }
+        }
+
         setData("items", newItems)
     }
 
+    const handleRequestItemChange = (index, field, value) => {
+        // Implementation for request item change
+    }
+
+    const totalSuppliers = suppliers.length
+    const allItems = suppliers.flatMap(s => s.items)
+    const totalItems = allItems.length
+
+    const pendingRequests = purchaseRequests.filter(pr => pr.status === "pending").length
+    const approvedRequests = purchaseRequests.filter(pr => pr.status === "approved").length
+    const totalRequestValue = purchaseRequests
+        .filter(pr => pr.status === "approved")
+        .reduce((acc, pr) => acc + (pr.quantity * pr.item.cost_price), 0)
+
+    const cheapestItem = allItems.length
+        ? allItems.reduce((min, item) => item.price < min.price ? item : min, allItems[0])
+        : null
+
+    const expensiveItem = allItems.length
+        ? allItems.reduce((max, item) => item.price > max.price ? item : max, allItems[0])
+        : null
+
     const formatCurrency = (price) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
-            minimumFractionDigits: 2
+        return new Intl.NumberFormat("id-ID", {
+            style: "currency",
+            currency: "IDR",
+            minimumFractionDigits: 0
         }).format(price)
+    }
+
+    const calculateProfit = (price, costPrice) => {
+        if (!price || !costPrice) return null
+        const profit = price - costPrice
+        const margin = (profit / costPrice) * 100
+        return { profit, margin }
     }
 
     return (
         <DashboardLayout>
             <div className="space-y-6">
-                {/* Header Section */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold text-gray-900">Suppliers</h1>
-                        <p className="text-sm text-gray-500 mt-1">
-                            Manage your suppliers and their provided items
-                        </p>
-                    </div>
-                    <button
-                        onClick={() => setOpenCreate(true)}
-                        className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
-                    >
-                        <PlusCircle className="w-4 h-4 mr-2" />
-                        Add Supplier
-                    </button>
+                <PageHeader
+                    title="Suppliers & Purchase Requests"
+                    description="Manage suppliers, track items, and handle purchase requests"
+                    action={() => setOpenCreate(true)}
+                    actionText="Add Supplier"
+                    icon={PlusCircle}
+                />
+
+                {/* Tabs */}
+                <div className="border-b border-gray-200">
+                    <nav className="flex -mb-px space-x-8">
+                        <button
+                            onClick={() => setActiveTab("suppliers")}
+                            className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === "suppliers"
+                                    ? "border-indigo-500 text-indigo-600"
+                                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                                }`}
+                        >
+                            Suppliers
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("requests")}
+                            className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === "requests"
+                                    ? "border-indigo-500 text-indigo-600"
+                                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                                }`}
+                        >
+                            Purchase Requests
+                            {pendingRequests > 0 && (
+                                <span className="ml-2 bg-red-100 text-red-600 py-0.5 px-2 rounded-full text-xs">
+                                    {pendingRequests} pending
+                                </span>
+                            )}
+                        </button>
+                    </nav>
                 </div>
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-white rounded-lg border border-gray-200 p-4">
-                        <div className="flex items-center">
-                            <div className="p-2 bg-indigo-50 rounded-lg">
-                                <Package className="w-5 h-5 text-indigo-600" />
-                            </div>
-                            <div className="ml-3">
-                                <p className="text-sm text-gray-500">Total Suppliers</p>
-                                <p className="text-xl font-semibold text-gray-900">{suppliers.length}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-white rounded-lg border border-gray-200 p-4">
-                        <div className="flex items-center">
-                            <div className="p-2 bg-green-50 rounded-lg">
-                                <Package className="w-5 h-5 text-green-600" />
-                            </div>
-                            <div className="ml-3">
-                                <p className="text-sm text-gray-500">Active Items</p>
-                                <p className="text-xl font-semibold text-gray-900">
-                                    {suppliers.reduce((acc, s) => acc + s.items.length, 0)}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-white rounded-lg border border-gray-200 p-4">
-                        <div className="flex items-center">
-                            <div className="p-2 bg-purple-50 rounded-lg">
-                                <Package className="w-5 h-5 text-purple-600" />
-                            </div>
-                            <div className="ml-3">
-                                <p className="text-sm text-gray-500">Avg Items/Supplier</p>
-                                <p className="text-xl font-semibold text-gray-900">
-                                    {(suppliers.reduce((acc, s) => acc + s.items.length, 0) / suppliers.length || 0).toFixed(1)}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                {/* Stats Cards - Different based on active tab */}
+                {activeTab === "suppliers" ? (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <ItemsStats
+                            title="Total Suppliers"
+                            value={totalSuppliers}
+                            icon={<CircleUserRound className="w-5 h-5" />}
+                            iconBg="bg-indigo-50"
+                            iconColor="text-indigo-600"
+                        />
 
-                {/* Table Section */}
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Supplier
-                                    </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Contact
-                                    </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Address
-                                    </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Items
-                                    </th>
-                                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Actions
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {suppliers.map((supplier) => (
-                                    <React.Fragment key={supplier.id}>
-                                        <tr className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center">
-                                                    <button
-                                                        onClick={() => toggleRow(supplier.id)}
-                                                        className="mr-2 text-gray-400 hover:text-gray-600"
-                                                    >
-                                                        {expandedRows.includes(supplier.id) ? (
-                                                            <ChevronDown className="w-4 h-4" />
-                                                        ) : (
-                                                            <ChevronRight className="w-4 h-4" />
-                                                        )}
-                                                    </button>
-                                                    <div className="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                                                        <CircleUserRound className="w-6 h-6 text-white" />
-                                                    </div>
-                                                    <div className="ml-4">
-                                                        <div className="text-sm font-medium text-gray-900">
-                                                            {supplier.name}
-                                                        </div>
-                                                        <div className="text-sm text-gray-500">
-                                                            {supplier.email}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center text-sm text-gray-900">
-                                                    <Phone className="w-4 h-4 text-gray-400 mr-2" />
-                                                    {supplier.phone}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-start text-sm text-gray-900">
-                                                    <MapPin className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0 mt-0.5" />
-                                                    <span className="line-clamp-2">{supplier.address}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                                    {supplier.items.length} items
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <div className="flex items-center justify-end space-x-2">
-                                                    <button
-                                                        onClick={() => {
-                                                            setSelectedSupplier(supplier)
-                                                            setData({
-                                                                ...supplier,
-                                                                items: supplier.items.length ? supplier.items : [{ name: "", sku: "", price: "" }]
-                                                            })
-                                                            setOpenEdit(true)
-                                                        }}
-                                                        className="p-1 text-gray-400 hover:text-indigo-600 transition-colors"
-                                                        title="Edit supplier"
-                                                    >
-                                                        <Edit2 className="w-4 h-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            if (confirm('Are you sure you want to delete this supplier?')) {
-                                                                destroy(`/inventory/suppliers/${supplier.id}`)
+                        <ItemsStats
+                            title="Total Items"
+                            value={totalItems}
+                            icon={<Package className="w-5 h-5" />}
+                            iconBg="bg-green-50"
+                            iconColor="text-green-600"
+                        />
+
+                        <ItemsStats
+                            title="Cheapest Item"
+                            value={cheapestItem ? formatCurrency(cheapestItem.price) : "-"}
+                            icon={<TrendingDown className="w-5 h-5" />}
+                            iconBg="bg-red-50"
+                            iconColor="text-red-600"
+                        />
+
+                        <ItemsStats
+                            title="Expensive Item"
+                            value={expensiveItem ? formatCurrency(expensiveItem.price) : "-"}
+                            icon={<TrendingUp className="w-5 h-5" />}
+                            iconBg="bg-green-100/50"
+                            iconColor="text-green-600"
+                        />
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <ItemsStats
+                            title="Pending Requests"
+                            value={pendingRequests}
+                            icon={<Clock className="w-5 h-5" />}
+                            iconBg="bg-yellow-50"
+                            iconColor="text-yellow-600"
+                        />
+
+                        <ItemsStats
+                            title="Approved Requests"
+                            value={approvedRequests}
+                            icon={<CheckCircle className="w-5 h-5" />}
+                            iconBg="bg-green-50"
+                            iconColor="text-green-600"
+                        />
+
+                        <ItemsStats
+                            title="Total Request Value"
+                            value={formatCurrency(totalRequestValue)}
+                            icon={<DollarSign className="w-5 h-5" />}
+                            iconBg="bg-purple-50"
+                            iconColor="text-purple-600"
+                        />
+
+                        <ItemsStats
+                            title="Avg. Profit Margin"
+                            value="32%"
+                            icon={<BarChart3 className="w-5 h-5" />}
+                            iconBg="bg-blue-50"
+                            iconColor="text-blue-600"
+                        />
+                    </div>
+                )}
+
+                {/* Suppliers Table */}
+                {activeTab === "suppliers" && (
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Supplier
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Contact
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Address
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Items
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Actions
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {suppliers.map((supplier) => (
+                                        <React.Fragment key={supplier.id}>
+                                            <tr className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center">
+                                                        <button onClick={() => toggleRow(supplier.id)} className="mr-2 text-gray-400 hover:text-gray-600">
+                                                            {expandedRows.includes(supplier.id)
+                                                                ? (<ChevronDown className="w-4 h-4" />)
+                                                                : (<ChevronRight className="w-4 h-4" />)
                                                             }
-                                                        }}
-                                                        className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                                                        title="Delete supplier"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-
-                                        {/* Expanded Items Row */}
-                                        {expandedRows.includes(supplier.id) && supplier.items.length > 0 && (
-                                            <tr className="bg-gray-50">
-                                                <td colSpan={5} className="px-6 py-4">
-                                                    <div className="ml-6">
-                                                        <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
-                                                            Items Provided by
-                                                        </h4>
-                                                        <div className="rounded-l-lg border-l-2 border-gray-300 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
-                                                            {supplier.items.map((item, idx) => (
-                                                                <div key={idx} className="bg-gray-200/40 rounded-lg border border-gray-200 p-3 hover:border-gray-400 transition-border">
-                                                                    <div className="flex justify-between items-start">
-                                                                        <div>
-                                                                            <p className="text-sm font-medium text-gray-900">{item.name}</p>
-                                                                            <p className="text-xs text-gray-500 mt-1">SKU: {item.sku}</p>
-                                                                        </div>
-                                                                        <span className="text-sm font-semibold text-yellow-600">
-                                                                            {formatCurrency(item.price)}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            ))}
+                                                        </button>
+                                                        <div className="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                                                            <CircleUserRound className="w-6 h-6 text-white" />
+                                                        </div>
+                                                        <div className="ml-4">
+                                                            <div className="text-sm font-medium text-gray-900">
+                                                                {supplier.name}
+                                                            </div>
+                                                            <div className="text-sm text-gray-500">
+                                                                {supplier.email}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center text-sm text-gray-900">
+                                                        <Phone className="w-4 h-4 text-gray-400 mr-2" />
+                                                        {supplier.phone}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-start text-sm text-gray-900">
+                                                        <MapPin className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0 mt-0.5" />
+                                                        <span className="line-clamp-2">{supplier.address}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                                        {supplier.items.length} items
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                    <div className="flex items-center justify-end space-x-2">
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedSupplier(supplier)
+                                                                setOpenRequest(true)
+                                                            }}
+                                                            className="p-1 text-gray-400 hover:text-green-600 transition-colors"
+                                                            title="Request Item"
+                                                        >
+                                                            <ShoppingCart className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedSupplier(supplier)
+                                                                setData({ ...supplier,
+                                                                    items: supplier.items.length
+                                                                        ? supplier.items
+                                                                        : [{ name: "", sku: "", price: "", cost_price: "", stock: 0 }]
+                                                                })
+                                                                setOpenEdit(true)
+                                                            }} className="p-1 text-gray-400 hover:text-indigo-600 transition-colors"
+                                                            title="Edit supplier"
+                                                        >
+                                                            <Edit2 className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                if (confirm('Are you sure you want to delete this supplier?')) {
+                                                                    destroy(`/inventory/suppliers/${supplier.id}`)
+                                                                }
+                                                            }}
+                                                            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                                                            title="Delete supplier"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </td>
                                             </tr>
-                                        )}
-                                    </React.Fragment>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
 
-                    {/* Empty State */}
-                    {suppliers.length === 0 && (
-                        <div className="text-center py-12">
-                            <Package className="mx-auto h-12 w-12 text-gray-400" />
-                            <h3 className="mt-2 text-sm font-medium text-gray-900">No suppliers</h3>
-                            <p className="mt-1 text-sm text-gray-500">Get started by adding your first supplier.</p>
-                            <div className="mt-6">
-                                <button
-                                    onClick={() => setOpenCreate(true)}
-                                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                >
-                                    <PlusCircle className="w-4 h-4 mr-2" />
-                                    Add Supplier
-                                </button>
-                            </div>
+                                            {expandedRows.includes(supplier.id) && (
+                                                <tr className="bg-gray-50">
+                                                    <td colSpan={5} className="px-6 py-4">
+                                                        <div className="ml-6">
+                                                            <div className="flex justify-between items-center mb-3">
+                                                                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                                    Items Provided by {supplier.name}
+                                                                </h4>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setSelectedSupplier(supplier)
+                                                                        setNewItemData({
+                                                                            ...newItemData,
+                                                                            supplier_id: supplier.id
+                                                                        })
+                                                                        setOpenAddItem(true)
+                                                                    }}
+                                                                    className="inline-flex items-center px-2 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-700 border border-indigo-200 rounded-lg hover:bg-indigo-50"
+                                                                >
+                                                                    <PlusCircle className="w-3 h-3 mr-1" />
+                                                                    Add Item
+                                                                </button>
+                                                            </div>
+
+                                                            {supplier.items.length > 0 ? (
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                                                                    {supplier.items.map((item, idx) => {
+                                                                        const profit = calculateProfit(item.price, item.cost_price)
+                                                                        return (
+                                                                            <div key={idx} className="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-sm transition-shadow">
+                                                                                <div className="flex justify-between items-start mb-4">
+                                                                                    <div>
+                                                                                        <p className="text-md font-medium text-gray-900">{item.name}</p>
+                                                                                        <p className="text-sm text-gray-500">SKU: {item.sku}</p>
+                                                                                    </div>
+                                                                                    <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                                                                                        Stock : {item.stock || 0}
+                                                                                    </span>
+                                                                                </div>
+
+                                                                                <div className="gap-2 text-xs mb-2">
+                                                                                    <div>
+                                                                                        <span className="text-gray-500">Cost:</span>
+                                                                                        <span className="ml-1 font-medium text-gray-700">
+                                                                                            {formatCurrency(item.cost_price || 0)}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <span className="text-gray-500">Sell:</span>
+                                                                                        <span className="ml-1 font-medium text-yellow-600">
+                                                                                            {formatCurrency(item.price)}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                {profit && (
+                                                                                    <div className="mt-2 pt-2 border-t border-gray-100">
+                                                                                        <div className="flex justify-between text-xs">
+                                                                                            <span className="text-gray-500">Profit:</span>
+                                                                                            <span className="font-medium text-green-600">
+                                                                                                {formatCurrency(profit.profit)} ({profit.margin.toFixed(1)}%)
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                )}
+
+                                                                                <div className="mt-4 flex justify-start">
+                                                                                    <button
+                                                                                        onClick={() => {
+                                                                                            setSelectedSupplier(supplier)
+                                                                                            setSelectedItem(item)
+                                                                                            setRequestData({
+                                                                                                supplier_id: supplier.id,
+                                                                                                item_id: item.id,
+                                                                                                quantity: 1,
+                                                                                                notes: ""
+                                                                                            })
+                                                                                            setOpenRequest(true)
+                                                                                        }}
+                                                                                        className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center"
+                                                                                    >
+                                                                                        <ShoppingCart className="w-3 h-3 mr-1" />
+                                                                                        Request
+                                                                                    </button>
+                                                                                </div>
+                                                                            </div>
+                                                                        )
+                                                                    })}
+                                                                </div>
+                                                            ) : (
+                                                                <p className="text-sm text-gray-500 italic">No items available</p>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </React.Fragment>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
-                    )}
-                </div>
+
+                        {/* Empty State */}
+                        {suppliers.length === 0 && (
+                            <div className="text-center py-12">
+                                <Package className="mx-auto h-12 w-12 text-gray-400" />
+                                <h3 className="mt-2 text-sm font-medium text-gray-900">No suppliers</h3>
+                                <p className="mt-1 text-sm text-gray-500">Get started by adding your first supplier.</p>
+                                <div className="mt-6">
+                                    <button
+                                        onClick={() => setOpenCreate(true)}
+                                        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                    >
+                                        <PlusCircle className="w-4 h-4 mr-2" />
+                                        Add Supplier
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Purchase Requests Table */}
+                {activeTab === "requests" && (
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Request ID
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Supplier
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Item
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Quantity
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Total Cost
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Status
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Actions
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {purchaseRequests.map((request) => (
+                                        <tr key={request.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600">
+                                                #{request.id}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm font-medium text-gray-900">
+                                                    {request.supplier.name}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm text-gray-900">{request.item.name}</div>
+                                                <div className="text-xs text-gray-500">{request.item.sku}</div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {request.quantity}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                {formatCurrency(request.quantity * request.item.cost_price)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                                    ${request.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                                        request.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                                            'bg-yellow-100 text-yellow-800'}`}>
+                                                    {request.status === 'pending' && <Clock className="w-3 h-3 mr-1" />}
+                                                    {request.status === 'approved' && <CheckCircle className="w-3 h-3 mr-1" />}
+                                                    {request.status === 'rejected' && <AlertCircle className="w-3 h-3 mr-1" />}
+                                                    {request.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                {request.status === 'pending' && (
+                                                    <div className="flex items-center justify-end space-x-2">
+                                                        <button
+                                                            onClick={() => post(`/inventory/purchase-requests/${request.id}/approve`)}
+                                                            className="p-1 text-gray-400 hover:text-green-600 transition-colors"
+                                                            title="Approve"
+                                                        >
+                                                            <CheckCircle className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => post(`/inventory/purchase-requests/${request.id}/reject`)}
+                                                            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                                                            title="Reject"
+                                                        >
+                                                            <X className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Empty State */}
+                        {purchaseRequests.length === 0 && (
+                            <div className="text-center py-12">
+                                <ShoppingCart className="mx-auto h-12 w-12 text-gray-400" />
+                                <h3 className="mt-2 text-sm font-medium text-gray-900">No purchase requests</h3>
+                                <p className="mt-1 text-sm text-gray-500">Requests will appear here when created.</p>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
-            {/* Modal (keep your existing modal code but you can enhance it similarly) */}
+            {/* Purchase Request Modal */}
+            {openRequest && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30">
+                    <div className="bg-white rounded-xl w-full max-w-md shadow-xl">
+                        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+                            <h2 className="text-lg font-semibold text-gray-900">Request Item</h2>
+                            <button
+                                onClick={() => {
+                                    setOpenRequest(false)
+                                    setSelectedSupplier(null)
+                                    setSelectedItem(null)
+                                    resetRequest()
+                                }}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={submitPurchaseRequest} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    Supplier
+                                </label>
+                                <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-gray-700">
+                                    {selectedSupplier?.name}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    Item
+                                </label>
+                                <select
+                                    value={requestData.item_id}
+                                    onChange={(e) => setRequestData("item_id", e.target.value)}
+                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    required
+                                >
+                                    <option value="">Select item</option>
+                                    {selectedSupplier?.items.map(item => (
+                                        <option key={item.id} value={item.id}>
+                                            {item.name} - {formatCurrency(item.cost_price || 0)}/unit
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    Quantity
+                                </label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={requestData.quantity}
+                                    onChange={(e) => setRequestData("quantity", e.target.value)}
+                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    Notes
+                                </label>
+                                <textarea
+                                    value={requestData.notes}
+                                    onChange={(e) => setRequestData("notes", e.target.value)}
+                                    rows="3"
+                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="Add any notes..."
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setOpenRequest(false)
+                                        setSelectedSupplier(null)
+                                        setSelectedItem(null)
+                                        resetRequest()
+                                    }}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
+                                >
+                                    Submit Request
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Add Item Modal */}
+            {openAddItem && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30">
+                    <div className="bg-white rounded-xl w-full max-w-md shadow-xl">
+                        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+                            <h2 className="text-lg font-semibold text-gray-900">Add New Item to {selectedSupplier?.name}</h2>
+                            <button
+                                onClick={() => {
+                                    setOpenAddItem(false)
+                                    setSelectedSupplier(null)
+                                    resetNewItem()
+                                }}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={submitAddItem} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    Item Name <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    value={newItemData.name}
+                                    onChange={(e) => setNewItemData("name", e.target.value)}
+                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="Product name"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    SKU <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    value={newItemData.sku}
+                                    onChange={(e) => setNewItemData("sku", e.target.value)}
+                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="SKU-001"
+                                    required
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                        Cost Price <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="1000"
+                                        min="0"
+                                        value={newItemData.cost_price}
+                                        onChange={(e) => setNewItemData("cost_price", e.target.value)}
+                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        placeholder="0"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                        Selling Price <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="1000"
+                                        min={newItemData.cost_price || 0}
+                                        value={newItemData.price}
+                                        onChange={(e) => setNewItemData("price", e.target.value)}
+                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        placeholder="0"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    Initial Stock
+                                </label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={newItemData.stock}
+                                    onChange={(e) => setNewItemData("stock", e.target.value)}
+                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="0"
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setOpenAddItem(false)
+                                        setSelectedSupplier(null)
+                                        resetNewItem()
+                                    }}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
+                                >
+                                    Add Item
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Create/Edit Supplier Modal - Keep existing but add cost_price field */}
             {(openCreate || openEdit) && (
                 <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/30">
                     <div className="bg-white p-6 rounded-xl w-[900px] max-h-[90vh] overflow-y-auto">
@@ -398,7 +934,7 @@ export default function Index({ suppliers }) {
                                 <div className="space-y-3">
                                     {data.items.map((item, index) => (
                                         <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                                            <div className="flex-1 grid grid-cols-3 gap-3">
+                                            <div className="flex-1 grid grid-cols-4 gap-3">
                                                 <div className="col-span-1">
                                                     <label className="block text-xs text-gray-500 mb-1">Item Name</label>
                                                     <input
@@ -406,6 +942,7 @@ export default function Index({ suppliers }) {
                                                         placeholder="Product name"
                                                         value={item.name}
                                                         onChange={(e) => handleItemChange(index, "name", e.target.value)}
+                                                        required
                                                     />
                                                 </div>
                                                 <div className="col-span-1">
@@ -415,18 +952,33 @@ export default function Index({ suppliers }) {
                                                         placeholder="SKU-001"
                                                         value={item.sku}
                                                         onChange={(e) => handleItemChange(index, "sku", e.target.value)}
+                                                        required
                                                     />
                                                 </div>
                                                 <div className="col-span-1">
-                                                    <label className="block text-xs text-gray-500 mb-1">Price</label>
+                                                    <label className="block text-xs text-gray-500 mb-1">Cost Price</label>
                                                     <input
                                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                                        placeholder="0.00"
+                                                        placeholder="0"
                                                         type="number"
-                                                        step="0.01"
+                                                        step="1000"
                                                         min="0"
+                                                        value={item.cost_price}
+                                                        onChange={(e) => handleItemChange(index, "cost_price", e.target.value)}
+                                                        required
+                                                    />
+                                                </div>
+                                                <div className="col-span-1">
+                                                    <label className="block text-xs text-gray-500 mb-1">Selling Price</label>
+                                                    <input
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                                        placeholder="0"
+                                                        type="number"
+                                                        step="1000"
+                                                        min={item.cost_price || 0}
                                                         value={item.price}
                                                         onChange={(e) => handleItemChange(index, "price", e.target.value)}
+                                                        required
                                                     />
                                                 </div>
                                             </div>

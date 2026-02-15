@@ -9,15 +9,17 @@ class Supplier extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'name',
-        'phone',
-        'email',
-        'address'
-    ];
+    protected $fillable = ['name', 'phone', 'email', 'address'];
 
+    // Relation ke Items
     public function items()
     {
         return $this->hasMany(Item::class);
+    }
+
+    // Relation ke Purchase Requests
+    public function purchaseRequests()
+    {
+        return $this->hasMany(PurchaseRequest::class);
     }
 }
