@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -25,7 +26,8 @@ class SuppliersController extends Controller
             'items' => 'nullable|array',
             'items.*.name' => 'required|string|max:255',
             'items.*.sku' => 'required|string|max:255|unique:items,sku',
-            'items.*.price' => 'required|numeric|min:0',
+            'items.*.cost_price' => 'required|numeric|min:0',
+            'items.*.selling_price' => 'required|numeric|min:0',
         ]);
 
         $supplier = Supplier::create($validated);
@@ -50,7 +52,8 @@ class SuppliersController extends Controller
             'items.*.id' => 'nullable|exists:items,id',
             'items.*.name' => 'required|string|max:255',
             'items.*.sku' => 'required|string|max:255',
-            'items.*.price' => 'required|numeric|min:0',
+            'items.*.cost_price' => 'required|numeric|min:0',
+            'items.*.selling_price' => 'required|numeric|min:0',
         ]);
 
         $supplier->update($validated);

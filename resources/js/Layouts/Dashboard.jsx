@@ -101,6 +101,7 @@ export default function DashboardLayout({ children }) {
             <div className="flex-1 flex flex-col">
                 <header className="flex items-center justify-between p-4 bg-white border-b border-gray-200 shadow-sm">
                     <h1 className="text-xl font-semibold text-gray-800">Dashboard</h1>
+                    <h1 className="text-xl font-semibold text-gray-800"></h1>
                 </header>
 
                 <main className="flex-1 overflow-y-auto bg-gray-50 p-8 relative z-10">

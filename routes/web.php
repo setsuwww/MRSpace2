@@ -1,8 +1,8 @@
 <?php
 
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\ItemsController;
-use App\Http\Controllers\SuppliersController;
+use App\Http\Controllers\Admin\ItemsController;
+use App\Http\Controllers\Admin\SuppliersController;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Route;
 

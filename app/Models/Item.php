@@ -12,7 +12,8 @@ class Item extends Model
         'sku',
         'description',
         'stock',
-        'price'
+        'cost_price',
+        'selling_price'
     ];
 
     public function movements()
