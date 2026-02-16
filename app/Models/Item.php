@@ -25,8 +25,13 @@ class Item extends Model
         return $this->belongsTo(Supplier::class);
     }
 
-    public function getPriceInRupiah()
+    public function getSellingPriceInRupiah()
     {
-        return 'Rp ' . number_format($this->price, 0, ',', '.');
+        return 'Rp ' . number_format($this->selling_price, 0, ',', '.');
+    }
+
+    public function getCostPriceInRupiah()
+    {
+        return 'Rp ' . number_format($this->cost_price, 0, ',', '.');
     }
 }

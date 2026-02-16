@@ -3,40 +3,48 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Item;
-use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Models\Item;
+use App\Models\Supplier;
+use App\Models\StockMovement;
 
 class ItemsController extends Controller
 {
     public function index()
     {
         return Inertia::render('Inventory/Items/Index', [
-            'items' => Item::latest()->get()
+            'items' => Item::latest()->get(),
+            'suppliers' => Supplier::all()
         ]);
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required',
-            'sku' => 'required|unique:items,sku',
-            'price' => 'required|numeric',
-            'description' => 'nullable'
+            'supplier_id' => 'required|exists:suppliers,id',
+            'name' => 'required|string|max:255',
+            'sku' => 'required|string|unique:items,sku',
+            'description' => 'nullable|string',
+            'stock' => 'nullable|integer|min:0',
+            'cost_price' => 'required|numeric|min:0',
+            'selling_price' => 'required|numeric|min:0',
         ]);
 
         Item::create($validated);
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Item created');
     }
 
     public function update(Request $request, Item $item)
     {
         $validated = $request->validate([
-            'name' => 'required',
-            'price' => 'required|numeric',
-            'description' => 'nullable'
+            'name' => 'required|string|max:255',
+            'sku' => 'required|string|unique:items,sku,' . $item->id,
+            'description' => 'nullable|string',
+            'stock' => 'nullable|integer|min:0',
+            'cost_price' => 'required|numeric|min:0',
+            'selling_price' => 'required|numeric|min:0',
         ]);
 
         $item->update($validated);
@@ -90,4 +98,3 @@ class ItemsController extends Controller
         return redirect()->back();
     }
 }
-

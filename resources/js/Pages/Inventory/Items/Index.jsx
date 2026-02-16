@@ -21,7 +21,7 @@ import {
 import ItemsStats from "./ItemsStats"
 import PageHeader from "@/Components/common/PageHeader"
 
-export default function Index({ items }) {
+export default function Index({ items, suppliers }) {
   const [openCreate, setOpenCreate] = useState(false)
   const [openEdit, setOpenEdit] = useState(false)
   const [selectedItem, setSelectedItem] = useState(null)
@@ -35,7 +35,8 @@ export default function Index({ items }) {
   const { data, setData, post, put, delete: destroy, reset, errors } = useForm({
     name: "",
     sku: "",
-    price: "",
+    cost_price: "",
+    selling_price: "",
     stock: "",
     description: "",
   })
@@ -101,17 +102,17 @@ export default function Index({ items }) {
     return String(aValue).localeCompare(String(bValue)) * direction
   })
 
-  const formatCurrency = (price) => {
+  const formatCurrency = (cost_price) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0
-    }).format(price)
+    }).format(cost_price)
   }
 
   // Stats dengan useMemo untuk optimasi
   const stats = useMemo(() => {
-    const totalValue = items.reduce((acc, item) => acc + (item.price * item.stock), 0)
+    const totalValue = items.reduce((acc, item) => acc + (item.selling_price * item.stock), 0)
     const totalItems = items.length
     const totalStock = items.reduce((acc, item) => acc + item.stock, 0)
     const lowStockItems = items.filter(item => item.stock < 10).length
@@ -188,9 +189,9 @@ export default function Index({ items }) {
                   {filterOptions.map((option) => {
                     return (
                       <button key={option.value} onClick={() => {
-                          setStockFilter(option.value)
-                          setOpenFilter(false)
-                        }}
+                        setStockFilter(option.value)
+                        setOpenFilter(false)
+                      }}
                         className={`w-full flex items-center px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors
                           ${stockFilter === option.value ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700'}`}
                       >
@@ -323,7 +324,7 @@ export default function Index({ items }) {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm font-semibold text-gray-900">
-                        {formatCurrency(item.price)}
+                        {formatCurrency(item.cost_price)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -334,7 +335,8 @@ export default function Index({ items }) {
                             setData({
                               name: item.name,
                               sku: item.sku,
-                              price: item.price,
+                              cost_price: item.cost_price,
+                              selling_price: item.selling_price,
                               stock: item.stock,
                               description: item.description ?? "",
                             })
@@ -402,6 +404,18 @@ export default function Index({ items }) {
       {openCreate && (
         <Modal onClose={() => setOpenCreate(false)} title="Add New Item">
           <form onSubmit={submitCreate} className="space-y-4">
+            <select
+              value={data.supplier_id}
+              onChange={(e) => setData("supplier_id", e.target.value)}
+              className="..."
+            >
+              <option value="">Select Supplier</option>
+              {suppliers.map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Item Name <span className="text-red-500">*</span>
@@ -440,27 +454,44 @@ export default function Index({ items }) {
                   step="1000"
                   min="0"
                   placeholder="0"
-                  value={data.price}
-                  onChange={(e) => setData("price", e.target.value)}
-                  error={errors.price}
+                  value={data.cost_price}
+                  onChange={(e) => setData("cost_price", e.target.value)}
+                  error={errors.cost_price}
                   icon={<DollarSign className="w-4 h-4 text-gray-400" />}
                   required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Stock
+                  Price <span className="text-red-500">*</span>
                 </label>
                 <Input
                   type="number"
+                  step="1000"
                   min="0"
                   placeholder="0"
-                  value={data.stock}
-                  onChange={(e) => setData("stock", e.target.value)}
-                  error={errors.stock}
-                  icon={<Archive className="w-4 h-4 text-gray-400" />}
+                  value={data.selling_price}
+                  onChange={(e) => setData("selling_price", e.target.value)}
+                  error={errors.selling_price}
+                  icon={<DollarSign className="w-4 h-4 text-gray-400" />}
+                  required
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Stock
+              </label>
+              <Input
+                type="number"
+                min="0"
+                placeholder="0"
+                value={data.stock}
+                onChange={(e) => setData("stock", e.target.value)}
+                error={errors.stock}
+                icon={<Archive className="w-4 h-4 text-gray-400" />}
+              />
             </div>
 
             <div>
@@ -537,9 +568,25 @@ export default function Index({ items }) {
                   step="1000"
                   min="0"
                   placeholder="0"
-                  value={data.price}
-                  onChange={(e) => setData("price", e.target.value)}
-                  error={errors.price}
+                  value={data.cost_price}
+                  onChange={(e) => setData("cost_price", e.target.value)}
+                  error={errors.cost_price}
+                  icon={<DollarSign className="w-4 h-4 text-gray-400" />}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Price <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="number"
+                  step="1000"
+                  min="0"
+                  placeholder="0"
+                  value={data.selling_price}
+                  onChange={(e) => setData("selling_price", e.target.value)}
+                  error={errors.selling_price}
                   icon={<DollarSign className="w-4 h-4 text-gray-400" />}
                   required
                 />

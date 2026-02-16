@@ -43,13 +43,15 @@ export default function Index({ suppliers, purchaseRequests = [] }) {
     }
 
     post("/inventory/suppliers", {
-      onSuccess: () => { reset()
+      onSuccess: () => {
+        reset()
         setOpenCreate(false)
       }
     })
   }
 
-  const submitEdit = (e) => { e.preventDefault()
+  const submitEdit = (e) => {
+    e.preventDefault()
 
     const invalidItems = data.items.filter(item =>
       item.price && item.cost_price && parseFloat(item.price) < parseFloat(item.cost_price)
@@ -61,7 +63,8 @@ export default function Index({ suppliers, purchaseRequests = [] }) {
     }
 
     put(`/inventory/suppliers/${selectedSupplier.id}`, {
-      onSuccess: () => { reset()
+      onSuccess: () => {
+        reset()
         setOpenEdit(false)
       }
     })
@@ -69,8 +72,7 @@ export default function Index({ suppliers, purchaseRequests = [] }) {
 
   const submitPurchaseRequest = (e) => {
     e.preventDefault()
-    post("/inventory/purchase-requests", {
-      data: requestData,
+    postRequest("/inventory/purchase-requests", {
       onSuccess: () => {
         resetRequest()
         setOpenRequest(false)
@@ -82,11 +84,16 @@ export default function Index({ suppliers, purchaseRequests = [] }) {
 
   const submitAddItem = (e) => {
     e.preventDefault()
-    post("/inventory/items", {
-      data: {
-        ...newItemData,
-        supplier_id: selectedSupplier.id
-      },
+
+    const price = Number(newItemData.price)
+    const cost = Number(newItemData.cost_price)
+
+    if (price && cost && price < cost) {
+      alert("Selling price cannot be less than cost price")
+      return
+    }
+
+    postNewItem("/inventory/items", {
       onSuccess: () => {
         resetNewItem()
         setOpenAddItem(false)
@@ -360,9 +367,18 @@ export default function Index({ suppliers, purchaseRequests = [] }) {
                               onClick={() => {
                                 setSelectedSupplier(supplier)
                                 setData({
-                                  ...supplier,
+                                  name: supplier.name || "",
+                                  phone: supplier.phone || "",
+                                  email: supplier.email || "",
+                                  address: supplier.address || "",
                                   items: supplier.items.length
-                                    ? supplier.items
+                                    ? supplier.items.map(item => ({
+                                      name: item.name,
+                                      sku: item.sku,
+                                      price: item.price,
+                                      cost_price: item.cost_price,
+                                      stock: item.stock || 0
+                                    }))
                                     : [{ name: "", sku: "", price: "", cost_price: "", stock: 0 }]
                                 })
                                 setOpenEdit(true)
@@ -398,7 +414,11 @@ export default function Index({ suppliers, purchaseRequests = [] }) {
                                   onClick={() => {
                                     setSelectedSupplier(supplier)
                                     setNewItemData({
-                                      ...newItemData,
+                                      name: "",
+                                      sku: "",
+                                      price: "",
+                                      cost_price: "",
+                                      stock: 0,
                                       supplier_id: supplier.id
                                     })
                                     setOpenAddItem(true)

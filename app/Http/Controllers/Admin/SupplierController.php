@@ -30,18 +30,21 @@ class SupplierController extends Controller
             'address' => 'nullable|string',
             'items.*.name' => 'required|string|max:255',
             'items.*.sku' => 'required|string|unique:items,sku',
-            'items.*.price' => 'required|integer|min:0',
+            'items.*.selling_price' => 'required|integer|min:0',
+            'items.*.cost_price' => 'required|integer|min:0', // tambah ini
         ]);
+
 
         $supplier = Supplier::create($data);
 
-        if(isset($data['items'])) {
+        if (isset($data['items'])) {
             foreach ($data['items'] as $item) {
                 $supplier->items()->create([
                     'name' => $item['name'],
                     'sku' => $item['sku'],
-                    'selling_price' => $item['price'],
-                    'cost_price' => $item['price'],
+                    'selling_price' => $item['selling_price'],
+                    'cost_price' => $item['cost_price'],
+                    'stock' => $item['stock'] ?? 0,
                 ]);
             }
         }
@@ -68,29 +71,41 @@ class SupplierController extends Controller
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',
             'address' => 'nullable|string',
-            'items.*.id' => 'nullable|exists:items,id',
+            'items.*.id' => 'nullable|exists:items,id', // untuk update existing items
             'items.*.name' => 'required|string|max:255',
             'items.*.sku' => 'required|string',
-            'items.*.price' => 'required|integer|min:0',
+            'items.*.cost_price' => 'required|integer|min:0',
+            'items.*.selling_price' => 'required|integer|min:0',
+            'items.*.stock' => 'nullable|integer|min:0',
         ]);
 
-        $supplier->update($data);
+        $supplier->update([
+            'name' => $data['name'],
+            'phone' => $data['phone'] ?? null,
+            'email' => $data['email'] ?? null,
+            'address' => $data['address'] ?? null,
+        ]);
 
-        if(isset($data['items'])) {
-            foreach ($data['items'] as $itemData) {
-                if(isset($itemData['id'])) {
-                    $item = Item::find($itemData['id']);
-                    $item->update([
-                        'name' => $itemData['name'],
-                        'sku' => $itemData['sku'],
-                        'selling_price' => $itemData['price'],
-                    ]);
+        if (isset($data['items'])) {
+            foreach ($data['items'] as $item) {
+                if (isset($item['id'])) {
+                    $existingItem = $supplier->items()->find($item['id']);
+                    if ($existingItem) {
+                        $existingItem->update([
+                            'name' => $item['name'],
+                            'sku' => $item['sku'],
+                            'selling_price' => $item['selling_price'],
+                            'cost_price' => $item['cost_price'],
+                            'stock' => $item['stock'] ?? 0,
+                        ]);
+                    }
                 } else {
                     $supplier->items()->create([
-                        'name' => $itemData['name'],
-                        'sku' => $itemData['sku'],
-                        'selling_price' => $itemData['price'],
-                        'cost_price' => $itemData['price'],
+                        'name' => $item['name'],
+                        'sku' => $item['sku'],
+                        'selling_price' => $item['selling_price'],
+                        'cost_price' => $item['cost_price'],
+                        'stock' => $item['stock'] ?? 0,
                     ]);
                 }
             }
