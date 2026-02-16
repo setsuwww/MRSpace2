@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Supplier;
 use App\Models\Item;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Models\Supplier;
 
 class SupplierController extends Controller
 {
@@ -64,6 +65,8 @@ class SupplierController extends Controller
         return Inertia::render('Suppliers/Edit', compact('supplier'));
     }
 
+
+
     public function update(Request $request, Supplier $supplier)
     {
         $data = $request->validate([
@@ -71,48 +74,80 @@ class SupplierController extends Controller
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',
             'address' => 'nullable|string',
-            'items.*.id' => 'nullable|exists:items,id', // untuk update existing items
+            'items' => 'nullable|array',
+            'items.*.id' => 'nullable|exists:items,id',
             'items.*.name' => 'required|string|max:255',
             'items.*.sku' => 'required|string',
-            'items.*.cost_price' => 'required|integer|min:0',
-            'items.*.selling_price' => 'required|integer|min:0',
+            'items.*.cost_price' => 'required|numeric|min:0',
+            'items.*.selling_price' => 'required|numeric|min:0',
             'items.*.stock' => 'nullable|integer|min:0',
         ]);
 
-        $supplier->update([
-            'name' => $data['name'],
-            'phone' => $data['phone'] ?? null,
-            'email' => $data['email'] ?? null,
-            'address' => $data['address'] ?? null,
-        ]);
+        DB::transaction(function () use ($data, $supplier) {
 
-        if (isset($data['items'])) {
-            foreach ($data['items'] as $item) {
-                if (isset($item['id'])) {
-                    $existingItem = $supplier->items()->find($item['id']);
-                    if ($existingItem) {
-                        $existingItem->update([
-                            'name' => $item['name'],
-                            'sku' => $item['sku'],
-                            'selling_price' => $item['selling_price'],
-                            'cost_price' => $item['cost_price'],
-                            'stock' => $item['stock'] ?? 0,
-                        ]);
+            $supplier->update([
+                'name' => $data['name'],
+                'phone' => $data['phone'] ?? null,
+                'email' => $data['email'] ?? null,
+                'address' => $data['address'] ?? null,
+            ]);
+
+            $processedIds = [];
+
+            if (!empty($data['items'])) {
+
+                foreach ($data['items'] as $itemData) {
+
+                    // Cari berdasarkan ID dulu
+                    $item = null;
+
+                    if (!empty($itemData['id'])) {
+                        $item = $supplier->items()->find($itemData['id']);
                     }
-                } else {
-                    $supplier->items()->create([
-                        'name' => $item['name'],
-                        'sku' => $item['sku'],
-                        'selling_price' => $item['selling_price'],
-                        'cost_price' => $item['cost_price'],
-                        'stock' => $item['stock'] ?? 0,
-                    ]);
+
+                    // Jika tidak ketemu by ID, cek by SKU (hindari duplicate insert)
+                    if (!$item) {
+                        $item = Item::where('sku', $itemData['sku'])->first();
+                    }
+
+                    if ($item) {
+
+                        $item->update([
+                            'name' => $itemData['name'],
+                            'sku' => $itemData['sku'],
+                            'cost_price' => $itemData['cost_price'],
+                            'selling_price' => $itemData['selling_price'],
+                            'stock' => $itemData['stock'] ?? 0,
+                            'supplier_id' => $supplier->id,
+                        ]);
+
+                        $processedIds[] = $item->id;
+                    } else {
+
+                        $newItem = $supplier->items()->create([
+                            'name' => $itemData['name'],
+                            'sku' => $itemData['sku'],
+                            'cost_price' => $itemData['cost_price'],
+                            'selling_price' => $itemData['selling_price'],
+                            'stock' => $itemData['stock'] ?? 0,
+                        ]);
+
+                        $processedIds[] = $newItem->id;
+                    }
                 }
             }
-        }
 
-        return redirect()->route('suppliers.index')->with('success', 'Supplier updated');
+            // Hapus item yang tidak dikirim lagi
+            $supplier->items()
+                ->whereNotIn('id', $processedIds)
+                ->delete();
+        });
+
+        return redirect()
+            ->route('suppliers.index')
+            ->with('success', 'Supplier updated');
     }
+
 
     public function destroy(Supplier $supplier)
     {

@@ -19,7 +19,7 @@ export default function Index({ suppliers, purchaseRequests = [] }) {
 
   const { data, setData, post, put, delete: destroy, reset } = useForm({
     name: "", phone: "", email: "", address: "",
-    items: [{ name: "", sku: "", price: "", cost_price: "", stock: 0 }]
+    items: [{ name: "", sku: "", selling_price: "", cost_price: "", stock: 0 }]
   })
 
   const { data: requestData, setData: setRequestData, post: postRequest, reset: resetRequest } = useForm({
@@ -27,14 +27,14 @@ export default function Index({ suppliers, purchaseRequests = [] }) {
   })
 
   const { data: newItemData, setData: setNewItemData, post: postNewItem, reset: resetNewItem } = useForm({
-    name: "", sku: "", price: "", cost_price: "", stock: 0, supplier_id: ""
+    name: "", sku: "", selling_price: "", cost_price: "", stock: 0, supplier_id: ""
   })
 
   const submitCreate = (e) => {
     e.preventDefault()
 
     const invalidItems = data.items.filter(item =>
-      item.price && item.cost_price && parseFloat(item.price) < parseFloat(item.cost_price)
+      item.selling_price && item.cost_price && parseFloat(item.selling_price) < parseFloat(item.cost_price)
     )
 
     if (invalidItems.length > 0) {
@@ -54,7 +54,7 @@ export default function Index({ suppliers, purchaseRequests = [] }) {
     e.preventDefault()
 
     const invalidItems = data.items.filter(item =>
-      item.price && item.cost_price && parseFloat(item.price) < parseFloat(item.cost_price)
+      item.selling_price && item.cost_price && parseFloat(item.selling_price) < parseFloat(item.cost_price)
     )
 
     if (invalidItems.length > 0) {
@@ -85,8 +85,9 @@ export default function Index({ suppliers, purchaseRequests = [] }) {
   const submitAddItem = (e) => {
     e.preventDefault()
 
-    const price = Number(newItemData.price)
     const cost = Number(newItemData.cost_price)
+    const price = Number(newItemData.selling_price)
+    const stock = Number(newItemData.stock) || 0
 
     if (price && cost && price < cost) {
       alert("Selling price cannot be less than cost price")
@@ -94,6 +95,14 @@ export default function Index({ suppliers, purchaseRequests = [] }) {
     }
 
     postNewItem("/inventory/items", {
+      data: {
+        name: newItemData.name,
+        sku: newItemData.sku,
+        supplier_id: newItemData.supplier_id,
+        cost_price: cost,
+        selling_price: price,
+        stock: stock
+      },
       onSuccess: () => {
         resetNewItem()
         setOpenAddItem(false)
@@ -111,7 +120,7 @@ export default function Index({ suppliers, purchaseRequests = [] }) {
   }
 
   const addItemRow = () => {
-    setData("items", [...data.items, { name: "", sku: "", price: "", cost_price: "", stock: 0 }])
+    setData("items", [...data.items, { name: "", sku: "", selling_price: "", cost_price: "", stock: 0 }])
   }
 
   const removeItemRow = (index) => {
@@ -125,8 +134,8 @@ export default function Index({ suppliers, purchaseRequests = [] }) {
     newItems[index][field] = value
 
     // Validasi harga jual tidak boleh kurang dari harga beli
-    if (field === "price" || field === "cost_price") {
-      const price = field === "price" ? parseFloat(value) : parseFloat(newItems[index].price)
+    if (field === "selling_price" || field === "cost_price") {
+      const price = field === "selling_price" ? parseFloat(value) : parseFloat(newItems[index].selling_price)
       const costPrice = field === "cost_price" ? parseFloat(value) : parseFloat(newItems[index].cost_price)
 
       if (price && costPrice && price < costPrice) {
@@ -152,24 +161,24 @@ export default function Index({ suppliers, purchaseRequests = [] }) {
     .reduce((acc, pr) => acc + (pr.quantity * pr.item.cost_price), 0)
 
   const cheapestItem = allItems.length
-    ? allItems.reduce((min, item) => item.price < min.price ? item : min, allItems[0])
+    ? allItems.reduce((min, item) => item.cost_price < min.cost_price ? item : min, allItems[0])
     : null
 
   const expensiveItem = allItems.length
-    ? allItems.reduce((max, item) => item.price > max.price ? item : max, allItems[0])
+    ? allItems.reduce((max, item) => item.cost_price > max.cost_price ? item : max, allItems[0])
     : null
 
-  const formatCurrency = (price) => {
+  const formatCurrency = (cost_price) => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
       minimumFractionDigits: 0
-    }).format(price)
+    }).format(cost_price)
   }
 
-  const calculateProfit = (price, costPrice) => {
-    if (!price || !costPrice) return null
-    const profit = price - costPrice
+  const calculateProfit = (selling_price, costPrice) => {
+    if (!selling_price || !costPrice) return null
+    const profit = selling_price - costPrice
     const margin = (profit / costPrice) * 100
     return { profit, margin }
   }
@@ -375,11 +384,11 @@ export default function Index({ suppliers, purchaseRequests = [] }) {
                                     ? supplier.items.map(item => ({
                                       name: item.name,
                                       sku: item.sku,
-                                      price: item.price,
+                                      selling_price: item.selling_price,
                                       cost_price: item.cost_price,
                                       stock: item.stock || 0
                                     }))
-                                    : [{ name: "", sku: "", price: "", cost_price: "", stock: 0 }]
+                                    : [{ name: "", sku: "", selling_price: "", cost_price: "", stock: 0 }]
                                 })
                                 setOpenEdit(true)
                               }} className="p-1 text-gray-400 hover:text-indigo-600 transition-colors"
@@ -416,7 +425,7 @@ export default function Index({ suppliers, purchaseRequests = [] }) {
                                     setNewItemData({
                                       name: "",
                                       sku: "",
-                                      price: "",
+                                      selling_price: "",
                                       cost_price: "",
                                       stock: 0,
                                       supplier_id: supplier.id
@@ -456,7 +465,7 @@ export default function Index({ suppliers, purchaseRequests = [] }) {
                                           <div>
                                             <span className="text-gray-500">Sell:</span>
                                             <span className="ml-1 font-medium text-yellow-600">
-                                              {formatCurrency(item.price)}
+                                              {formatCurrency(item.selling_price)}
                                             </span>
                                           </div>
                                         </div>
@@ -796,9 +805,9 @@ export default function Index({ suppliers, purchaseRequests = [] }) {
                   <input
                     type="number"
                     step="1000"
-                    min={newItemData.cost_price || 0}
-                    value={newItemData.price}
-                    onChange={(e) => setNewItemData("price", e.target.value)}
+                    min={newItemData.selling_price || 0}
+                    value={newItemData.selling_price}
+                    onChange={(e) => setNewItemData("selling_price", e.target.value)}
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="0"
                     required
@@ -968,7 +977,7 @@ export default function Index({ suppliers, purchaseRequests = [] }) {
                           />
                         </div>
                         <div className="col-span-1">
-                          <label className="block text-xs text-gray-500 mb-1">Cost Price</label>
+                          <label className="block text-xs text-gray-500 mb-1">Selling Price</label>
                           <input
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             placeholder="0"
@@ -976,20 +985,20 @@ export default function Index({ suppliers, purchaseRequests = [] }) {
                             step="1000"
                             min="0"
                             value={item.cost_price}
-                            onChange={(e) => handleItemChange(index, "cost_price", e.target.value)}
+                            onChange={(e) => handleItemChange(index, "cost_price", Number(e.target.value))}
                             required
                           />
                         </div>
                         <div className="col-span-1">
-                          <label className="block text-xs text-gray-500 mb-1">Selling Price</label>
+                          <label className="block text-xs text-gray-500 mb-1">Cost Price</label>
                           <input
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             placeholder="0"
                             type="number"
                             step="1000"
                             min={item.cost_price || 0}
-                            value={item.price}
-                            onChange={(e) => handleItemChange(index, "price", e.target.value)}
+                            value={item.selling_price}
+                            onChange={(e) => handleItemChange(index, "selling_price", Number(e.target.value))}
                             required
                           />
                         </div>

@@ -40,7 +40,7 @@ class ItemsController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'sku' => 'required|string|unique:items,sku,' . $item->id,
+            'sku' => 'nullable|string',
             'description' => 'nullable|string',
             'stock' => 'nullable|integer|min:0',
             'cost_price' => 'required|numeric|min:0',
