@@ -244,7 +244,7 @@ export default function Index({ suppliers, purchaseRequests = [] }) {
 
             <ItemsStats
               title="Cheapest Item"
-              value={cheapestItem ? formatCurrency(cheapestItem.price) : "-"}
+              value="10000" // {cheapestItem ? formatCurrency(cheapestItem.price) : "-"}
               icon={<TrendingDown className="w-5 h-5" />}
               iconBg="bg-red-50"
               iconColor="text-red-600"
@@ -252,7 +252,7 @@ export default function Index({ suppliers, purchaseRequests = [] }) {
 
             <ItemsStats
               title="Expensive Item"
-              value={expensiveItem ? formatCurrency(expensiveItem.price) : "-"}
+              value="15000" // {expensiveItem ? formatCurrency(expensiveItem.price) : "-"}
               icon={<TrendingUp className="w-5 h-5" />}
               iconBg="bg-green-100/50"
               iconColor="text-green-600"
